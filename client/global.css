@@ -1,0 +1,107 @@
+/** @import must precede all other statements */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /**
+   * Tailwind CSS theme
+   * tailwind.config.ts expects the following color variables to be expressed as HSL values.
+   * A different format will require also updating the theme in tailwind.config.ts.
+  */
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Veda palette (HSL) */
+    --primary: 197 66% 66%; /* Sky Blue #6EC1E4 */
+    --primary-foreground: 222 100% 99%;
+
+    --secondary: 45 100% 61%; /* Sunshine Yellow #FFD93D */
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 120 73% 75%; /* Mint #90EE90 */
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 6 100% 68%; /* Coral #FF6F61 */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 197 66% 40%;
+
+    /* rounded corners to 2xl */
+    --radius: 1rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5% 26%;
+    --sidebar-primary: 197 66% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 270 46% 67%; /* Lavender #B57EDC */
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217 91% 60%;
+  }
+
+  .dark {
+    /* Deep navy with neon accents */
+    --background: 222 39% 10%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 39% 12%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 39% 12%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 197 66% 66%;
+    --primary-foreground: 222 100% 99%;
+
+    --secondary: 45 100% 61%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 222 32% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 270 46% 67%;
+    --accent-foreground: 222 100% 99%;
+
+    --destructive: 6 74% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 222 32% 18%;
+    --input: 222 32% 18%;
+    --ring: 197 66% 60%;
+    --sidebar-background: 222 39% 9%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 197 66% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 270 46% 60%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 222 32% 18%;
+    --sidebar-ring: 197 66% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+  .shadow-soft { box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+  .shadow-soft-lg { box-shadow: 0 16px 40px rgba(0,0,0,0.12); }
+}
