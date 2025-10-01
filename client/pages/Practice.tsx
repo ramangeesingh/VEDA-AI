@@ -1,8 +1,20 @@
 import MainLayout from "@/components/layouts/MainLayout";
 import { useMemo, useState, useEffect, useRef } from "react";
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { setGrade, Grade, getProfile, addXP, bumpStreak } from "@/lib/vedaStore";
+import {
+  setGrade,
+  Grade,
+  getProfile,
+  addXP,
+  bumpStreak,
+} from "@/lib/vedaStore";
 import { Timer, ChevronLeft, ChevronRight } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import {
@@ -30,7 +42,13 @@ export type Question = {
 
 type Setup = {
   grade: Grade | null;
-  subject: "Mathematics" | "Science" | "English" | "Social Studies" | "General Knowledge" | null;
+  subject:
+    | "Mathematics"
+    | "Science"
+    | "English"
+    | "Social Studies"
+    | "General Knowledge"
+    | null;
   difficulty: "Easy" | "Medium" | "Hard" | null;
   timed: boolean;
 };
@@ -70,10 +88,14 @@ export default function Practice() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
           {/* Class */}
           <label className="grid gap-2">
-            <span className="text-sm font-semibold">Select Standard (Class)</span>
+            <span className="text-sm font-semibold">
+              Select Standard (Class)
+            </span>
             <Select
               value={setup.grade ?? undefined}
-              onValueChange={(v) => setSetup((s) => ({ ...s, grade: v as Grade }))}
+              onValueChange={(v) =>
+                setSetup((s) => ({ ...s, grade: v as Grade }))
+              }
             >
               <SelectTrigger className="rounded-2xl bg-veda-lavender/20 shadow-soft hover:shadow-soft-lg focus:ring-veda-sky">
                 <SelectValue placeholder="Choose Class" />
@@ -93,7 +115,9 @@ export default function Practice() {
             <span className="text-sm font-semibold">Select Subject</span>
             <Select
               value={setup.subject ?? undefined}
-              onValueChange={(v) => setSetup((s) => ({ ...s, subject: v as Setup["subject"] }))}
+              onValueChange={(v) =>
+                setSetup((s) => ({ ...s, subject: v as Setup["subject"] }))
+              }
             >
               <SelectTrigger className="rounded-2xl bg-veda-sky/20 shadow-soft hover:shadow-soft-lg focus:ring-veda-lavender">
                 <SelectValue placeholder="Choose Subject" />
@@ -113,7 +137,12 @@ export default function Practice() {
             <span className="text-sm font-semibold">Select Difficulty</span>
             <Select
               value={setup.difficulty ?? undefined}
-              onValueChange={(v) => setSetup((s) => ({ ...s, difficulty: v as Setup["difficulty"] }))}
+              onValueChange={(v) =>
+                setSetup((s) => ({
+                  ...s,
+                  difficulty: v as Setup["difficulty"],
+                }))
+              }
             >
               <SelectTrigger className="rounded-2xl bg-veda-yellow/20 shadow-soft hover:shadow-soft-lg focus:ring-veda-sky">
                 <SelectValue placeholder="Choose Difficulty" />
@@ -159,7 +188,9 @@ export default function Practice() {
         {started ? (
           <Quiz questions={questions} timed={setup.timed} />
         ) : (
-          <div className="text-sm text-muted-foreground">Select your class, subject and difficulty to begin.</div>
+          <div className="text-sm text-muted-foreground">
+            Select your class, subject and difficulty to begin.
+          </div>
         )}
       </div>
     </MainLayout>
@@ -222,7 +253,10 @@ function buildQuestionPool(
 ): Omit<Question, "id">[] {
   const lvl = difficulty;
   const s = subject;
-  const mcq = (text: string, opts: [string, boolean][]): Omit<Question, "id"> => ({
+  const mcq = (
+    text: string,
+    opts: [string, boolean][],
+  ): Omit<Question, "id"> => ({
     type: "mcq",
     text,
     options: opts.map((o, i) => ({ id: `${i}`, label: o[0], correct: o[1] })),
@@ -236,7 +270,10 @@ function buildQuestionPool(
     subject: s,
     difficulty: lvl,
   });
-  const scenario = (text: string, keywords: string[]): Omit<Question, "id"> => ({
+  const scenario = (
+    text: string,
+    keywords: string[],
+  ): Omit<Question, "id"> => ({
     type: "scenario",
     text,
     keywords,
@@ -249,27 +286,57 @@ function buildQuestionPool(
   if (s === "Mathematics") {
     if (["Nursery", "KG", "1", "2"].includes(grade)) {
       pool.push(
-        mcq("Which is a vowel?", [["A", true], ["B", false], ["D", false], ["K", false]]),
+        mcq("Which is a vowel?", [
+          ["A", true],
+          ["B", false],
+          ["D", false],
+          ["K", false],
+        ]),
         fill("2 + 3 = __", "5"),
-        scenario("You have 2 pencils and get 3 more. How many in total?", ["5"]),
+        scenario("You have 2 pencils and get 3 more. How many in total?", [
+          "5",
+        ]),
       );
     } else if (["3", "4", "5"].includes(grade)) {
       pool.push(
-        mcq("2 + 5 = ?", [["6", false], ["7", true], ["8", false], ["9", false]]),
+        mcq("2 + 5 = ?", [
+          ["6", false],
+          ["7", true],
+          ["8", false],
+          ["9", false],
+        ]),
         fill("12 - 4 = __", "8"),
         scenario("A box has 4 rows with 3 apples each. Total apples?", ["12"]),
       );
     } else if (["6", "7", "8"].includes(grade)) {
       pool.push(
-        mcq("HCF of 12 and 18?", [["3", false], ["6", true], ["9", false], ["12", false]]),
+        mcq("HCF of 12 and 18?", [
+          ["3", false],
+          ["6", true],
+          ["9", false],
+          ["12", false],
+        ]),
         fill("Area of 5x3 rectangle = __", "15"),
-        scenario("Speed 30 km/h for 2 hours. Distance?", ["60", "60km", "60 km"]),
+        scenario("Speed 30 km/h for 2 hours. Distance?", [
+          "60",
+          "60km",
+          "60 km",
+        ]),
       );
     } else {
       pool.push(
-        mcq("Derivative of x^2?", [["x", false], ["2x", true], ["x^2", false], ["2x^2", false]]),
+        mcq("Derivative of x^2?", [
+          ["x", false],
+          ["2x", true],
+          ["x^2", false],
+          ["2x^2", false],
+        ]),
         fill("∫ 2x dx = __ + C", "x^2"),
-        scenario("Function f increasing where f' is __?", ["positive", ">0", "greater than 0"]),
+        scenario("Function f increasing where f' is __?", [
+          "positive",
+          ">0",
+          "greater than 0",
+        ]),
       );
     }
   }
@@ -277,40 +344,87 @@ function buildQuestionPool(
   if (s === "Science") {
     if (["6", "7", "8"].includes(grade)) {
       pool.push(
-        mcq("Photosynthesis happens in?", [["Roots", false], ["Leaves", true], ["Stem", false], ["Flower", false]]),
+        mcq("Photosynthesis happens in?", [
+          ["Roots", false],
+          ["Leaves", true],
+          ["Stem", false],
+          ["Flower", false],
+        ]),
         fill("Gas released in photosynthesis: __", "oxygen"),
-        scenario("Plant kept in dark. Predict: rate of photosynthesis is __.", ["low", "decrease", "reduced"]),
+        scenario("Plant kept in dark. Predict: rate of photosynthesis is __.", [
+          "low",
+          "decrease",
+          "reduced",
+        ]),
       );
     } else {
       pool.push(
-        mcq("Ohm's law: V = ?", [["IR", true], ["I/R", false], ["R/I", false], ["I^2R", false]]),
+        mcq("Ohm's law: V = ?", [
+          ["IR", true],
+          ["I/R", false],
+          ["R/I", false],
+          ["I^2R", false],
+        ]),
         fill("H2O is commonly called __", "water"),
-        scenario("A ball is thrown up. At highest point, velocity is __.", ["0", "zero"]),
+        scenario("A ball is thrown up. At highest point, velocity is __.", [
+          "0",
+          "zero",
+        ]),
       );
     }
   }
 
   if (s === "English") {
     pool.push(
-      mcq("Simple past of 'go'?", [["goes", false], ["going", false], ["went", true], ["gone", false]]),
+      mcq("Simple past of 'go'?", [
+        ["goes", false],
+        ["going", false],
+        ["went", true],
+        ["gone", false],
+      ]),
       fill("Fill the blank: She __ to school.", "goes"),
-      scenario("Write a synonym for 'happy'", ["glad", "joyful", "pleased", "cheerful"]),
+      scenario("Write a synonym for 'happy'", [
+        "glad",
+        "joyful",
+        "pleased",
+        "cheerful",
+      ]),
     );
   }
 
   if (s === "Social Studies") {
     pool.push(
-      mcq("India is a __.", [["democracy", true], ["monarchy", false], ["dictatorship", false], ["theocracy", false]]),
+      mcq("India is a __.", [
+        ["democracy", true],
+        ["monarchy", false],
+        ["dictatorship", false],
+        ["theocracy", false],
+      ]),
       fill("The capital of India is __.", "new delhi"),
-      scenario("Name one Fundamental Right in India", ["equality", "freedom", "religion", "education", "constitutional remedies"]),
+      scenario("Name one Fundamental Right in India", [
+        "equality",
+        "freedom",
+        "religion",
+        "education",
+        "constitutional remedies",
+      ]),
     );
   }
 
   if (s === "General Knowledge") {
     pool.push(
-      mcq("Which planet is known as the Red Planet?", [["Mars", true], ["Jupiter", false], ["Venus", false], ["Mercury", false]]),
+      mcq("Which planet is known as the Red Planet?", [
+        ["Mars", true],
+        ["Jupiter", false],
+        ["Venus", false],
+        ["Mercury", false],
+      ]),
       fill("Largest ocean on Earth: __ Ocean", "pacific"),
-      scenario("Who wrote 'Gitanjali'?", ["tagore", "rabindranath", "rabindranath tagore"]),
+      scenario("Who wrote 'Gitanjali'?", [
+        "tagore",
+        "rabindranath",
+        "rabindranath tagore",
+      ]),
     );
   }
 
@@ -334,8 +448,16 @@ function Quiz({ questions, timed }: { questions: Question[]; timed: boolean }) {
   const qStartRef = useRef<number>(Date.now());
   const [durations, setDurations] = useState<Record<string, number>>({});
 
-  const totalCorrect = useMemo(() => Object.values(correct).filter(Boolean).length, [correct]);
-  useEffect(() => { if (done) { addXP(totalCorrect * 10); bumpStreak(); } }, [done, totalCorrect]);
+  const totalCorrect = useMemo(
+    () => Object.values(correct).filter(Boolean).length,
+    [correct],
+  );
+  useEffect(() => {
+    if (done) {
+      addXP(totalCorrect * 10);
+      bumpStreak();
+    }
+  }, [done, totalCorrect]);
 
   useEffect(() => {
     if (!timed) return;
@@ -405,7 +527,9 @@ function Quiz({ questions, timed }: { questions: Question[]; timed: boolean }) {
   }
 
   const answeredCount = Object.keys(answers).length;
-  const percent = Math.round((Math.max(i, answeredCount) / questions.length) * 100);
+  const percent = Math.round(
+    (Math.max(i, answeredCount) / questions.length) * 100,
+  );
 
   if (done) {
     return (
@@ -427,14 +551,21 @@ function Quiz({ questions, timed }: { questions: Question[]; timed: boolean }) {
     <div className="rounded-2xl border p-5 shadow-soft bg-card grid gap-4">
       {/* Timer */}
       {timed && (
-        <div className="flex items-center gap-2 text-veda-coral text-sm"><Timer size={16} /> {timeLeft}s</div>
+        <div className="flex items-center gap-2 text-veda-coral text-sm">
+          <Timer size={16} /> {timeLeft}s
+        </div>
       )}
       {/* Progress */}
       <div className="grid gap-2">
         <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-          <div className="h-full bg-veda-sky transition-all" style={{ width: `${percent}%` }} />
+          <div
+            className="h-full bg-veda-sky transition-all"
+            style={{ width: `${percent}%` }}
+          />
         </div>
-        <div className="text-xs text-muted-foreground">{i + 1} / {questions.length}</div>
+        <div className="text-xs text-muted-foreground">
+          {i + 1} / {questions.length}
+        </div>
       </div>
 
       {/* Question */}
@@ -446,7 +577,7 @@ function Quiz({ questions, timed }: { questions: Question[]; timed: boolean }) {
               <button
                 key={opt.id}
                 onClick={() => answerCurrent(opt.id)}
-                className={`flex items-center gap-3 rounded-2xl border px-3 py-2 text-left shadow-soft transition-all hover:-translate-y-0.5 ${a===opt.id?"ring-2 ring-veda-lavender bg-veda-lavender/10":"bg-background"}`}
+                className={`flex items-center gap-3 rounded-2xl border px-3 py-2 text-left shadow-soft transition-all hover:-translate-y-0.5 ${a === opt.id ? "ring-2 ring-veda-lavender bg-veda-lavender/10" : "bg-background"}`}
               >
                 {opt.label}
               </button>
@@ -473,15 +604,27 @@ function Quiz({ questions, timed }: { questions: Question[]; timed: boolean }) {
 
       {/* Nav */}
       <div className="flex flex-wrap items-center gap-3">
-        <button onClick={prev} disabled={i===0} className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 border shadow-soft disabled:opacity-60">
-          <ChevronLeft size={16}/> Previous
+        <button
+          onClick={prev}
+          disabled={i === 0}
+          className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 border shadow-soft disabled:opacity-60"
+        >
+          <ChevronLeft size={16} /> Previous
         </button>
         {i < questions.length - 1 ? (
-          <button onClick={next} disabled={!answers[q.id]} className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 bg-foreground text-background shadow-soft disabled:opacity-60">
-            Next <ChevronRight size={16}/>
+          <button
+            onClick={next}
+            disabled={!answers[q.id]}
+            className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 bg-foreground text-background shadow-soft disabled:opacity-60"
+          >
+            Next <ChevronRight size={16} />
           </button>
         ) : (
-          <button onClick={finish} disabled={!answers[q.id]} className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 bg-veda-coral text-white shadow-soft disabled:opacity-60">
+          <button
+            onClick={finish}
+            disabled={!answers[q.id]}
+            className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 bg-veda-coral text-white shadow-soft disabled:opacity-60"
+          >
             Finish
           </button>
         )}
@@ -511,14 +654,27 @@ function Feedback({
   const seconds = Math.round(totalTime / 1000);
 
   // Category scores for radar
-  const typeTotals = { mcq: 0, fill: 0, scenario: 0 } as Record<QuestionType, number>;
-  const typeCorrect = { mcq: 0, fill: 0, scenario: 0 } as Record<QuestionType, number>;
+  const typeTotals = { mcq: 0, fill: 0, scenario: 0 } as Record<
+    QuestionType,
+    number
+  >;
+  const typeCorrect = { mcq: 0, fill: 0, scenario: 0 } as Record<
+    QuestionType,
+    number
+  >;
   questions.forEach((q) => {
     typeTotals[q.type] += 1;
     if (correct[q.id]) typeCorrect[q.type] += 1;
   });
-  const toPct = (n: number, d: number) => (d === 0 ? 0 : Math.round((n / d) * 100));
-  const listening = Math.max(40, Math.min(100, Math.round(60 + accuracy * 0.3 - Math.max(0, (seconds / total) - 10))));
+  const toPct = (n: number, d: number) =>
+    d === 0 ? 0 : Math.round((n / d) * 100);
+  const listening = Math.max(
+    40,
+    Math.min(
+      100,
+      Math.round(60 + accuracy * 0.3 - Math.max(0, seconds / total - 10)),
+    ),
+  );
   const grasping = toPct(typeCorrect.mcq, typeTotals.mcq);
   const retention = toPct(typeCorrect.fill, typeTotals.fill);
   const application = toPct(typeCorrect.scenario, typeTotals.scenario);
@@ -533,18 +689,29 @@ function Feedback({
   // Friendly feedback text
   const strengths: string[] = [];
   const improvements: string[] = [];
-  if (listening >= 70) strengths.push("Listening 🎧"); else improvements.push("Listening 🧏");
-  if (grasping >= 70) strengths.push("Grasping 🧩"); else improvements.push("Grasping 🧩");
-  if (retention >= 70) strengths.push("Retention 🧠"); else improvements.push("Retention 🧠");
-  if (application >= 70) strengths.push("Application ✍️"); else improvements.push("Application ✍️");
+  if (listening >= 70) strengths.push("Listening 🎧");
+  else improvements.push("Listening 🧏");
+  if (grasping >= 70) strengths.push("Grasping 🧩");
+  else improvements.push("Grasping 🧩");
+  if (retention >= 70) strengths.push("Retention 🧠");
+  else improvements.push("Retention 🧠");
+  if (application >= 70) strengths.push("Application ✍️");
+  else improvements.push("Application ✍️");
 
   return (
     <div className="rounded-2xl border p-6 shadow-soft bg-card grid gap-4">
       <div className="text-xl font-extrabold">Your Results</div>
       <div className="grid md:grid-cols-2 gap-6 items-center">
         <div className="grid gap-2 text-sm">
-          <div>Accuracy: <span className="font-semibold">{accuracy}%</span></div>
-          <div>Time taken: <span className="font-semibold">{timed ? `${60 - timeLeft}s` : `${seconds}s`}</span></div>
+          <div>
+            Accuracy: <span className="font-semibold">{accuracy}%</span>
+          </div>
+          <div>
+            Time taken:{" "}
+            <span className="font-semibold">
+              {timed ? `${60 - timeLeft}s` : `${seconds}s`}
+            </span>
+          </div>
           <div className="text-muted-foreground">
             {strengths.length > 0 && (
               <div>You’re strong in {strengths.join(", ")}.</div>
@@ -560,7 +727,12 @@ function Feedback({
               <PolarGrid />
               <PolarAngleAxis dataKey="metric" tick={{ fontSize: 12 }} />
               <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} />
-              <RRadar dataKey="value" stroke="#6EC1E4" fill="#6EC1E4" fillOpacity={0.4} />
+              <RRadar
+                dataKey="value"
+                stroke="#6EC1E4"
+                fill="#6EC1E4"
+                fillOpacity={0.4}
+              />
             </RRadarChart>
           </ResponsiveContainer>
         </div>
