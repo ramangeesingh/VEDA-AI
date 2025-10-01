@@ -334,6 +334,9 @@ function Quiz({ questions, timed }: { questions: Question[]; timed: boolean }) {
   const qStartRef = useRef<number>(Date.now());
   const [durations, setDurations] = useState<Record<string, number>>({});
 
+  const totalCorrect = useMemo(() => Object.values(correct).filter(Boolean).length, [correct]);
+  useEffect(() => { if (done) { addXP(totalCorrect * 10); bumpStreak(); } }, [done, totalCorrect]);
+
   useEffect(() => {
     if (!timed) return;
     const t = setInterval(() => {
@@ -405,11 +408,6 @@ function Quiz({ questions, timed }: { questions: Question[]; timed: boolean }) {
   const percent = Math.round((Math.max(i, answeredCount) / questions.length) * 100);
 
   if (done) {
-    const totalCorrect = Object.values(correct).filter(Boolean).length;
-    useEffect(() => {
-      addXP(totalCorrect * 10);
-      bumpStreak();
-    }, [totalCorrect]);
     return (
       <Feedback
         questions={questions}
