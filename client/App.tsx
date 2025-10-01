@@ -9,7 +9,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Settings from "./pages/Settings";
-import ClassSelect from "./pages/ClassSelect";
 import Practice from "./pages/Practice";
 import Tutor from "./pages/Tutor";
 import Gamification from "./pages/Gamification";
@@ -28,7 +27,6 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route path="/class" element={<ClassSelect />} />
               <Route path="/practice" element={<Practice />} />
               <Route path="/tutor" element={<Tutor />} />
               <Route path="/gamification" element={<Gamification />} />
