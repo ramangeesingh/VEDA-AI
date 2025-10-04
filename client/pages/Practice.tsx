@@ -4,6 +4,7 @@ import { getProfile, Grade, addXP, bumpStreak, addLeaderboard } from "@/lib/veda
 import { useMemo, useState, useEffect } from "react";
 import { Clock, CheckCircle2, XCircle, Target, Timer, Brain, BookOpen } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import { generateQuestions } from "@/lib/practiceService";
 
 export default function Practice() {
   const profile = getProfile();
@@ -94,6 +95,21 @@ function CustomPractice({ grade }: { grade: Grade }) {
   const [difficulty, setDifficulty] = useState("Easy");
   const [start, setStart] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(false);
+  
+  async function startPractice() {
+    setLoading(true);
+    const generated = await generateQuestions(grade, subject, difficulty, 10);
+    if (generated.length > 0) {
+      setQuestions(generated);
+      setStart(true);
+    } else {
+      setQuestions(makeQuestions(grade, 10));
+      setStart(true);
+    }
+    setLoading(false);
+  }
+  
   return (
     <div className="rounded-2xl border p-5 shadow-soft bg-card grid gap-4">
       {!start ? (
@@ -116,7 +132,7 @@ function CustomPractice({ grade }: { grade: Grade }) {
               </select>
             </label>
           </div>
-          <button onClick={()=>{ setQuestions(makeQuestions(grade, 10)); setStart(true); }} className="self-start rounded-2xl bg-veda-coral text-white px-4 py-2 shadow-soft">Start</button>
+          <button onClick={startPractice} disabled={loading} className="self-start rounded-2xl bg-veda-coral text-white px-4 py-2 shadow-soft disabled:opacity-50">{loading ? "Generating..." : "Start"}</button>
         </>
       ) : (
         <Quiz questions={questions} timed={false} />

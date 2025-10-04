@@ -1,29 +1,41 @@
 import MainLayout from "@/components/layouts/MainLayout";
 import { useState, useRef, useEffect } from "react";
 import { Bot, Send, Sparkles } from "lucide-react";
+import { getProfile } from "@/lib/vedaStore";
+import { askTutor } from "@/lib/geminiService";
 
 const mascotUrl = "https://cdn.builder.io/api/v1/image/assets%2F39ee7dd62eee466082afcbad8171f571%2F00dc3fb32365460fb80ddd8776526a6e?format=webp&width=800";
 
 type Msg = { role: "user"|"assistant"; text: string };
 
 export default function Tutor(){
+  const profile = getProfile();
   const [msgs, setMsgs] = useState<Msg[]>([
-    { role: "assistant", text: "Ask me anything! I’ll explain it at your level." },
+    { role: "assistant", text: profile.grade ? `Hi! I'm your ${profile.grade} tutor. Ask me anything and I'll explain it just right for you!` : "Please select your class first, then I can help you better!" },
   ]);
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(()=>{ listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" }); },[msgs.length]);
 
-  function send(){
-    if (!input.trim()) return;
+  async function send(){
+    if (!input.trim() || loading) return;
+    
     const q = input.trim();
     setMsgs(m=>[...m, { role:"user", text:q }]);
     setInput("");
-    setTimeout(()=>{
-      const answer = simpleAnswer(q);
+    setLoading(true);
+    
+    try {
+      const grade = profile.grade || "5";
+      const answer = await askTutor(q, grade, msgs);
       setMsgs(m=>[...m, { role:"assistant", text: answer }]);
-    }, 400);
+    } catch (error) {
+      setMsgs(m=>[...m, { role:"assistant", text: "Sorry, I'm having trouble right now. Please try again!" }]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -50,8 +62,8 @@ export default function Tutor(){
             <Starter text="Why is speed = distance ÷ time?" onPick={setInput} />
           </div>
           <div className="p-3 flex items-center gap-2">
-            <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&send()} placeholder="Type your question..." className="flex-1 rounded-2xl border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary/60 transition-colors"/>
-            <button onClick={send} className="rounded-2xl bg-foreground text-background px-4 py-2 shadow-soft flex items-center gap-2 transition-all active:scale-95"><Send size={16}/> Send</button>
+            <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&send()} placeholder={profile.grade ? "Type your question..." : "Select your class first!"} disabled={!profile.grade || loading} className="flex-1 rounded-2xl border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary/60 transition-colors disabled:opacity-50"/>
+            <button onClick={send} disabled={!profile.grade || loading} className="rounded-2xl bg-foreground text-background px-4 py-2 shadow-soft flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50"><Send size={16}/> {loading ? "..." : "Send"}</button>
           </div>
         </div>
       </div>
@@ -60,15 +72,8 @@ export default function Tutor(){
 }
 
 function Starter({ text, onPick }: { text: string; onPick: (v: string)=>void }){
+  const profile = getProfile();
   return (
-    <button onClick={()=>onPick(text)} className="rounded-full bg-muted px-3 py-1 text-xs shadow-soft hover:shadow-soft-lg hover:-translate-y-0.5 transition-all flex items-center gap-1"><Sparkles size={14}/> {text}</button>
+    <button onClick={()=>onPick(text)} disabled={!profile.grade} className="rounded-full bg-muted px-3 py-1 text-xs shadow-soft hover:shadow-soft-lg hover:-translate-y-0.5 transition-all flex items-center gap-1 disabled:opacity-50"><Sparkles size={14}/> {text}</button>
   );
-}
-
-function simpleAnswer(q: string){
-  const lower = q.toLowerCase();
-  if (lower.includes("speed")) return "Speed = distance ÷ time. If you travel 100 km in 2 hours, speed is 50 km/h.";
-  if (lower.includes("example")) return "Sure! Try: 12 × 7 = 84. Notice 12 × 5 = 60 and 12 × 2 = 24, then 60 + 24 = 84.";
-  if (lower.includes("explain")) return "I’ll tailor the explanation based on your class. Start with the definition, then a simple example, then a quick practice.";
-  return "Great question! Let’s break it into simple steps and try a small example.";
 }
