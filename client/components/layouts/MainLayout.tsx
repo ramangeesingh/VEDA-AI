@@ -32,6 +32,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
           <nav className="hidden md:flex items-center gap-6 text-sm">
             <NavLink to="/class" className={({isActive})=>`hover:text-primary transition-colors ${isActive?"text-primary":""}`}>Class</NavLink>
             <NavLink to="/practice" className={({isActive})=>`hover:text-primary transition-colors ${isActive?"text-primary":""}`}>Practice</NavLink>
+            <NavLink to="/adaptive-test" className={({isActive})=>`hover:text-primary transition-colors ${isActive?"text-primary":""}`}>Adaptive Test</NavLink>
             <NavLink to="/tutor" className={({isActive})=>`hover:text-primary transition-colors ${isActive?"text-primary":""}`}>Tutor</NavLink>
             <NavLink to="/gamification" className={({isActive})=>`hover:text-primary transition-colors ${isActive?"text-primary":""}`}>Gamification</NavLink>
             <NavLink to="/settings" className={({isActive})=>`hover:text-primary transition-colors ${isActive?"text-primary":""}`}>Settings</NavLink>
