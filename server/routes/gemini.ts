@@ -152,7 +152,16 @@ export const handlePracticeQuestions: RequestHandler = async (req, res) => {
 };
 
 function createPracticePrompt(grade: string, subject: string, difficulty: string, count: number): string {
-  return `Create ${count} MCQ questions for Class ${grade} ${subject}.
+  const difficultyMap = {
+    "Very Easy": "very basic concepts",
+    "Easy": "simple problems", 
+    "Moderate": "intermediate level",
+    "Hard": "challenging problems"
+  };
+  
+  const level = difficultyMap[difficulty as keyof typeof difficultyMap] || "appropriate level";
+  
+  return `Create ${count} MCQ questions for Class ${grade} ${subject} at ${level}.
 
 Format:
 Q1: What is 2+2?
@@ -161,15 +170,9 @@ B) 4
 C) 5
 D) 6
 Answer: B
+Topic: Addition
 
-Q2: What is 3+3?
-A) 5
-B) 6
-C) 7
-D) 8
-Answer: B
-
-Now create ${count} questions:`;
+Now create ${count} questions with Topic for each:`;
 }
 
 function parsePracticeResponse(response: string, count: number): any[] {
@@ -179,6 +182,7 @@ function parsePracticeResponse(response: string, count: number): any[] {
   let currentQ = null;
   let options = [];
   let correctAnswer = '';
+  let topic = '';
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -188,6 +192,7 @@ function parsePracticeResponse(response: string, count: number): any[] {
         questions.push({
           id: questions.length.toString(),
           text: currentQ,
+          topic: topic || 'General',
           options: options.map((opt, idx) => ({
             id: `${questions.length}-${idx}`,
             label: opt,
@@ -198,10 +203,13 @@ function parsePracticeResponse(response: string, count: number): any[] {
       currentQ = line.split(': ')[1] || line;
       options = [];
       correctAnswer = '';
+      topic = '';
     } else if (line.match(/^[A-D]\)/)) {
       options.push(line.substring(3));
     } else if (line.startsWith('Correct:') || line.startsWith('Answer:')) {
       correctAnswer = line.split(': ')[1] || line.split(' ')[1];
+    } else if (line.startsWith('Topic:')) {
+      topic = line.split(': ')[1] || '';
     }
   }
   
@@ -209,6 +217,7 @@ function parsePracticeResponse(response: string, count: number): any[] {
     questions.push({
       id: questions.length.toString(),
       text: currentQ,
+      topic: topic || 'General',
       options: options.map((opt, idx) => ({
         id: `${questions.length}-${idx}`,
         label: opt,

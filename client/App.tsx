@@ -13,6 +13,7 @@ import ClassSelect from "./pages/ClassSelect";
 import Practice from "./pages/Practice";
 import Tutor from "./pages/Tutor";
 import Gamification from "./pages/Gamification";
+import AdaptiveTest from "./pages/AdaptiveTest";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { I18nProvider } from "@/lib/i18n";
 
@@ -31,6 +32,7 @@ const App = () => (
               <Route path="/class" element={<ClassSelect />} />
               <Route path="/practice" element={<Practice />} />
               <Route path="/tutor" element={<Tutor />} />
+              <Route path="/adaptive-test" element={<AdaptiveTest />} />
               <Route path="/gamification" element={<Gamification />} />
               <Route path="/settings" element={<Settings />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
