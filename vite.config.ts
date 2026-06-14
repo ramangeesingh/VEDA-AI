@@ -5,6 +5,7 @@ import { createServer } from "./server";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  envPrefix: ["VITE_", "NEXT_PUBLIC_"],
   server: {
     host: "::",
     port: 8080,

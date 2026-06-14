@@ -14,8 +14,11 @@ import Practice from "./pages/Practice";
 import Tutor from "./pages/Tutor";
 import Gamification from "./pages/Gamification";
 import AdaptiveTest from "./pages/AdaptiveTest";
+import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { I18nProvider } from "@/lib/i18n";
+import { AuthProvider } from "@/hooks/useAuth";
 
 const queryClient = new QueryClient();
 
@@ -23,23 +26,27 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <I18nProvider>
       <ThemeProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/class" element={<ClassSelect />} />
-              <Route path="/practice" element={<Practice />} />
-              <Route path="/tutor" element={<Tutor />} />
-              <Route path="/adaptive-test" element={<AdaptiveTest />} />
-              <Route path="/gamification" element={<Gamification />} />
-              <Route path="/settings" element={<Settings />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="/class" element={<ClassSelect />} />
+                <Route path="/practice" element={<Practice />} />
+                <Route path="/tutor" element={<Tutor />} />
+                <Route path="/adaptive-test" element={<AdaptiveTest />} />
+                <Route path="/gamification" element={<Gamification />} />
+                <Route path="/settings" element={<Settings />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
       </ThemeProvider>
     </I18nProvider>
   </QueryClientProvider>

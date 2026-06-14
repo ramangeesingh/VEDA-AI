@@ -3,10 +3,15 @@ import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 import { getProfile, saveProfile } from "@/lib/vedaStore";
 import { useI18n } from "@/lib/i18n";
+import { useAuth } from "@/hooks/useAuth";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 
 export default function Settings() {
   const { theme, setTheme } = useTheme();
   const { lang, setLang } = useI18n();
+  const { user, signOut } = useAuth();
   const [language, setLanguage] = useState<string>(lang);
   const [email, setEmail] = useState(true);
   const [sms, setSms] = useState(false);
@@ -16,6 +21,52 @@ export default function Settings() {
     <MainLayout>
       <div className="max-w-3xl mx-auto grid gap-6">
         <h1 className="text-2xl font-extrabold">Settings</h1>
+
+        {user ? (
+          <section className="rounded-2xl border p-5 shadow-soft bg-card">
+            <h2 className="font-bold mb-4">Account Profile</h2>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-16 w-16 border-2 border-veda-sky shadow-soft">
+                  <AvatarImage src={user.user_metadata?.avatar_url} />
+                  <AvatarFallback className="bg-veda-sky/25 text-veda-primary-ink font-bold text-xl">
+                    {user.email?.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="font-bold text-lg leading-tight">
+                    {user.user_metadata?.full_name || "Veda Student"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">{user.email}</p>
+                  <p className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 font-medium">
+                    Signed in via {user.app_metadata.provider || "Email"}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="destructive"
+                onClick={signOut}
+                className="rounded-2xl h-10 px-4 font-semibold hover:shadow-soft active:scale-95 text-sm shrink-0"
+              >
+                <LogOut size={16} />
+                Sign Out
+              </Button>
+            </div>
+          </section>
+        ) : (
+          <section className="rounded-2xl border p-5 shadow-soft bg-card">
+            <h2 className="font-bold mb-3">Account</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              You are currently using a temporary local profile. Sign in to sync your progress.
+            </p>
+            <Button
+              onClick={() => (window.location.href = "/auth")}
+              className="rounded-2xl bg-veda-yellow text-veda-primary-ink px-4 py-2 font-semibold hover:shadow-soft active:scale-95 text-sm"
+            >
+              Sign In
+            </Button>
+          </section>
+        )}
 
         <section className="rounded-2xl border p-5 shadow-soft bg-card">
           <h2 className="font-bold mb-3">Theme</h2>
