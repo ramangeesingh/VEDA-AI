@@ -1,4 +1,4 @@
-import { GeminiPracticeRequest, GeminiPracticeResponse } from "@shared/practiceTypes";
+import { Difficulty, Subject } from "@shared/coreTypes";
 
 export async function generateQuestions(
   grade: string,
@@ -7,33 +7,31 @@ export async function generateQuestions(
   count: number
 ): Promise<any[]> {
   try {
-    console.log('Calling practice API with:', { grade, subject, difficulty, count });
-    
-    const request: GeminiPracticeRequest = {
-      grade,
-      subject,
-      difficulty,
-      count
-    };
-
-    const response = await fetch('/api/practice', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(request)
+    // Try the new adaptive assessment endpoint first
+    const response = await fetch("/api/assessment/question", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ grade, subject, difficulty, count }),
     });
 
-    const data: GeminiPracticeResponse = await response.json();
-    console.log('Practice API response:', data);
-    
+    const data = await response.json();
     if (data.success && data.questions.length > 0) {
-      console.log('Using Gemini questions:', data.questions.length);
       return data.questions;
-    } else {
-      console.error('Practice API failed or no questions:', data.error);
-      return [];
     }
+
+    // Fallback to legacy practice endpoint
+    const legacyResponse = await fetch("/api/practice", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ grade, subject, difficulty, count }),
+    });
+    const legacyData = await legacyResponse.json();
+    if (legacyData.success && legacyData.questions.length > 0) {
+      return legacyData.questions;
+    }
+    return [];
   } catch (error) {
-    console.error('Practice service error:', error);
+    console.error("generateQuestions error:", error);
     return [];
   }
-}
+}

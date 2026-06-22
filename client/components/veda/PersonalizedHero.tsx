@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { getProfile } from "@/lib/vedaStore";
+import { useLearningProfile } from "@/hooks/useLearningProfile";
 import { Flame, Star, Trophy, Target, Brain, Zap, BookOpen, Lightbulb } from "lucide-react";
 
 const mascotUrl =
@@ -184,7 +185,7 @@ const FOCUS_TOPICS = [
   { label: "Fractions",     dot: "bg-veda-mint",    priority: "On Track" },
 ];
 
-function FocusCard() {
+function FocusCard({ topics }: { topics: typeof FOCUS_TOPICS }) {
   return (
     <div className="rounded-2xl border bg-card/60 backdrop-blur-sm px-4 py-3 shadow-soft border-veda-lavender/25">
       <div className="flex items-center justify-between mb-2">
@@ -194,7 +195,7 @@ function FocusCard() {
         <span className="text-[9px] text-muted-foreground italic">AI selected</span>
       </div>
       <ul className="space-y-1">
-        {FOCUS_TOPICS.map((t, i) => (
+        {topics.map((t, i) => (
           <li key={i} className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className={`h-2 w-2 rounded-full shrink-0 ${t.dot}`} />
@@ -208,17 +209,19 @@ function FocusCard() {
   );
 }
 
+
 // ─── Main Hero Export ─────────────────────────────────────────────────────────
 
 export default function PersonalizedHero() {
   const { user }  = useAuth();
   const [mounted, setMounted]  = useState(false);
-  const [profile, setProfile]  = useState({ xp: 0, streak: 0 });
+  const [localProfile, setLocalProfile] = useState({ xp: 0, streak: 0 });
+  const { profile: supabaseProfile, weakTopics } = useLearningProfile();
   const { value: motivMsg, visible: motivVisible } = useRotating(MOTIV_MESSAGES, 5500);
 
   useEffect(() => {
     setMounted(true);
-    setProfile(getProfile());
+    setLocalProfile(getProfile());
   }, []);
 
   const firstName =
@@ -226,9 +229,20 @@ export default function PersonalizedHero() {
     user?.email?.split("@")[0] ||
     "Learner";
 
-  const xp       = profile.xp;
-  const streak   = profile.streak;
+  // Prefer Supabase data when logged in
+  const xp       = supabaseProfile?.xp ?? localProfile.xp;
+  const streak   = supabaseProfile?.streak ?? localProfile.streak;
   const level    = getLevel(xp);
+
+  // Focus topics: use weak topics from Supabase if available, else static demo
+  const focusTopics = weakTopics.length > 0
+    ? weakTopics.slice(0, 3).map(w => ({
+        label: w.topic,
+        dot: w.severity === "critical" ? "bg-veda-coral" : w.severity === "moderate" ? "bg-veda-yellow" : "bg-veda-mint",
+        priority: w.severity === "critical" ? "High" : w.severity === "moderate" ? "Medium" : "On Track",
+      }))
+    : FOCUS_TOPICS;
+
   const tasksLeft = TASKS.filter(t => !t.done).length;
 
   return (
@@ -277,7 +291,7 @@ export default function PersonalizedHero() {
               <Zap size={16}/> Resume Learning
             </Link>
             <Link
-              to="/adaptive-test"
+              to="/assessment"
               className="inline-flex items-center gap-2 rounded-2xl bg-veda-lavender text-white px-5 py-3 font-semibold shadow-soft hover:shadow-soft-lg hover:scale-[1.02] transition-all active:scale-95 text-sm"
             >
               <Brain size={16}/> Take Assessment
@@ -287,7 +301,7 @@ export default function PersonalizedHero() {
           {/* Mission + Focus — side by side on sm+, stacked on mobile */}
           <div className="grid sm:grid-cols-2 gap-3">
             <MissionCard />
-            <FocusCard   />
+            <FocusCard topics={focusTopics} />
           </div>
         </div>
 

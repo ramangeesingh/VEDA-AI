@@ -1,7 +1,12 @@
 import MainLayout from "@/components/layouts/MainLayout";
 import { DailyProgressRing, WeeklyPerformance, FundamentalsRadar } from "@/components/veda/Charts";
 import PersonalizedHero from "@/components/veda/PersonalizedHero";
-import { BookOpen, AlertCircle, Zap, Sparkles } from "lucide-react";
+import LearningProfileCard from "@/components/veda/profile/LearningProfileCard";
+import MasteryGrid from "@/components/veda/profile/MasteryGrid";
+import { useLearningProfile } from "@/hooks/useLearningProfile";
+import { useAuth } from "@/hooks/useAuth";
+import { BookOpen, AlertCircle, Zap, Sparkles, Brain } from "lucide-react";
+import { Link } from "react-router-dom";
 
 // ─── Shared card shell ────────────────────────────────────────────────────────
 
@@ -25,14 +30,40 @@ function SectionLabel({ icon, label, sub }: { icon: React.ReactNode; label: stri
   );
 }
 
-// ─── AI Insight cards ─────────────────────────────────────────────────────────
+// ─── AI Insight Cards (live data) ─────────────────────────────────────────────
 
 function LearningPathCard() {
-  const topics = [
-    { num: 1, name: "Fractions",  badge: "Next Up",    badgeCls: "bg-veda-sky/20 text-veda-sky" },
-    { num: 2, name: "Algebra",    badge: "Needs Work",  badgeCls: "bg-veda-coral/15 text-veda-coral" },
-    { num: 3, name: "Geometry",   badge: "Upcoming",    badgeCls: "bg-veda-mint/20 text-veda-mint" },
+  const { masteryScores } = useLearningProfile();
+
+  // Sort by mastery ascending — lowest mastery = highest priority
+  const topicScores = masteryScores
+    .filter((m) => m.topic !== "")
+    .sort((a, b) => a.masteryPct - b.masteryPct)
+    .slice(0, 3);
+
+  const BADGE_MAP = (pct: number) =>
+    pct < 40
+      ? { label: "Needs Work",  cls: "bg-veda-coral/15 text-veda-coral" }
+      : pct < 70
+      ? { label: "In Progress", cls: "bg-veda-yellow/20 text-veda-yellow" }
+      : { label: "On Track",    cls: "bg-veda-mint/20 text-veda-mint" };
+
+  // Fallback topics when no data yet
+  const fallback = [
+    { num: 1, name: "Fractions",  badge: { label: "Next Up",   cls: "bg-veda-sky/20 text-veda-sky" } },
+    { num: 2, name: "Algebra",    badge: { label: "Needs Work", cls: "bg-veda-coral/15 text-veda-coral" } },
+    { num: 3, name: "Geometry",   badge: { label: "Upcoming",  cls: "bg-veda-mint/20 text-veda-mint" } },
   ];
+
+  const topics =
+    topicScores.length > 0
+      ? topicScores.map((m, i) => ({
+          num: i + 1,
+          name: m.topic,
+          badge: BADGE_MAP(m.masteryPct),
+        }))
+      : fallback;
+
   return (
     <DashCard>
       <SectionLabel
@@ -41,13 +72,15 @@ function LearningPathCard() {
         sub="AI generated"
       />
       <ol className="space-y-3">
-        {topics.map(t => (
+        {topics.map((t) => (
           <li key={t.num} className="flex items-center gap-3">
             <span className="flex-shrink-0 h-7 w-7 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
               {t.num}
             </span>
             <span className="flex-1 text-sm font-semibold">{t.name}</span>
-            <span className={`text-[10px] font-semibold rounded-full px-2 py-0.5 ${t.badgeCls}`}>{t.badge}</span>
+            <span className={`text-[10px] font-semibold rounded-full px-2 py-0.5 ${t.badge.cls}`}>
+              {t.badge.label}
+            </span>
           </li>
         ))}
       </ol>
@@ -56,11 +89,27 @@ function LearningPathCard() {
 }
 
 function WeakConceptsCard() {
-  const concepts = [
-    { name: "Algebra",       pct: 38, color: "bg-veda-coral" },
-    { name: "Word Problems", pct: 52, color: "bg-veda-yellow" },
-    { name: "Geometry",      pct: 61, color: "bg-veda-mint"  },
-  ];
+  const { weakTopics, masteryScores } = useLearningProfile();
+
+  // Use live weak topics if available, fallback to mastery-derived
+  const items =
+    weakTopics.length > 0
+      ? weakTopics.slice(0, 3).map((w) => {
+          const mastery = masteryScores.find((m) => m.topic === w.topic)?.masteryPct ?? 30;
+          const color =
+            w.severity === "critical"
+              ? "bg-veda-coral"
+              : w.severity === "moderate"
+              ? "bg-veda-yellow"
+              : "bg-veda-mint";
+          return { name: w.topic, pct: Math.round(mastery), color };
+        })
+      : [
+          { name: "Algebra",       pct: 38, color: "bg-veda-coral" },
+          { name: "Word Problems", pct: 52, color: "bg-veda-yellow" },
+          { name: "Geometry",      pct: 61, color: "bg-veda-mint" },
+        ];
+
   return (
     <DashCard>
       <SectionLabel
@@ -69,7 +118,7 @@ function WeakConceptsCard() {
         sub="Based on recent tests"
       />
       <ul className="space-y-3">
-        {concepts.map(c => (
+        {items.map((c) => (
           <li key={c.name}>
             <div className="flex justify-between text-xs mb-1">
               <span className="font-semibold">{c.name}</span>
@@ -89,11 +138,15 @@ function WeakConceptsCard() {
 }
 
 function RecommendedPracticeCard() {
+  const { weakTopics } = useLearningProfile();
+  const topWeak = weakTopics[0];
+
   const items = [
     { icon: "🎯", label: "Questions",  value: "15 Questions" },
     { icon: "⏱️", label: "Duration",   value: "~10 Minutes"  },
-    { icon: "⚡", label: "Difficulty", value: "Medium"       },
+    { icon: "⚡", label: "Difficulty", value: topWeak?.severity === "critical" ? "Easy" : "Medium" },
   ];
+
   return (
     <DashCard className="flex flex-col">
       <SectionLabel
@@ -102,7 +155,7 @@ function RecommendedPracticeCard() {
         sub="AI selected"
       />
       <ul className="space-y-2 mb-4 flex-1">
-        {items.map(it => (
+        {items.map((it) => (
           <li key={it.label} className="flex items-center gap-3 text-sm">
             <span className="text-base">{it.icon}</span>
             <span className="text-muted-foreground text-xs w-16">{it.label}</span>
@@ -110,10 +163,18 @@ function RecommendedPracticeCard() {
           </li>
         ))}
       </ul>
-      <div className="mt-auto pt-2 border-t border-border/40 flex items-center gap-1.5">
+      <Link
+        to={topWeak ? `/assessment?subject=${topWeak.subject}` : "/assessment"}
+        className="w-full rounded-2xl bg-veda-coral text-white py-2.5 text-sm font-bold text-center shadow-soft hover:shadow-soft-lg hover:scale-[1.01] active:scale-95 transition-all"
+      >
+        Start Practice Session →
+      </Link>
+      <div className="mt-3 border-t border-border/40 pt-2 flex items-center gap-1.5">
         <Sparkles size={12} className="text-veda-lavender" />
         <p className="text-[10px] text-muted-foreground italic">
-          Adaptive session targeting your weak spots.
+          {topWeak
+            ? `Targeting your weak spot: ${topWeak.topic}`
+            : "Adaptive session targeting your weak spots."}
         </p>
       </div>
     </DashCard>
@@ -138,6 +199,9 @@ function ChartCard({ title, subtitle, color, children }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Index() {
+  const { user } = useAuth();
+  const { profile, masteryScores, weakTopics, isLoading } = useLearningProfile();
+
   return (
     <MainLayout>
       {/* ── Hero: Personalized command center ── */}
@@ -149,6 +213,38 @@ export default function Index() {
         <WeakConceptsCard />
         <RecommendedPracticeCard />
       </section>
+
+      {/* ── Learning Profile + Mastery (shown when logged in and has data) ── */}
+      {user && (
+        <section id="learning-profile" className="mt-8 grid md:grid-cols-[1fr_2fr] gap-6 items-start">
+          {profile && !isLoading ? (
+            <LearningProfileCard profile={profile} />
+          ) : (
+            <div className="rounded-2xl border bg-card p-6 shadow-soft">
+              <div className="flex items-center gap-2 mb-4">
+                <Brain size={16} className="text-veda-lavender" />
+                <h2 className="font-bold text-base">Learning Profile</h2>
+              </div>
+              {isLoading ? (
+                <div className="h-32 flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-full border-2 border-veda-sky border-t-transparent animate-spin" />
+                </div>
+              ) : (
+                <div className="text-center py-8 space-y-3">
+                  <p className="text-sm text-muted-foreground">Take your first assessment to build your learning profile.</p>
+                  <Link
+                    to="/assessment"
+                    className="inline-block rounded-2xl bg-veda-sky text-white px-4 py-2 text-sm font-semibold shadow-soft hover:shadow-soft-lg transition-all"
+                  >
+                    Start Assessment →
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
+          <MasteryGrid masteryScores={masteryScores} weakTopics={weakTopics} />
+        </section>
+      )}
 
       {/* ── Analytics row ── */}
       <section id="charts" className="mt-8 grid md:grid-cols-3 gap-6">

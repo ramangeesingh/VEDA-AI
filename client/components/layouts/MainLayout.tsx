@@ -42,8 +42,9 @@ export default function MainLayout({ children }: { children: ReactNode }) {
             Veda
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm">
-            <NavLink to="/class" className={({isActive})=>`hover:text-primary transition-colors ${isActive?"text-primary":""}`}>Class</NavLink>
+            <NavLink to="/assessment" className={({isActive})=>`hover:text-primary transition-colors ${isActive?"text-primary":""}`}>Assessment</NavLink>
             <NavLink to="/practice" className={({isActive})=>`hover:text-primary transition-colors ${isActive?"text-primary":""}`}>Practice</NavLink>
+            <NavLink to="/mistakes" className={({isActive})=>`hover:text-primary transition-colors ${isActive?"text-primary":""}`}>Mistakes</NavLink>
             <NavLink to="/adaptive-test" className={({isActive})=>`hover:text-primary transition-colors ${isActive?"text-primary":""}`}>Adaptive Test</NavLink>
             <NavLink to="/tutor" className={({isActive})=>`hover:text-primary transition-colors ${isActive?"text-primary":""}`}>Tutor</NavLink>
             <NavLink to="/gamification" className={({isActive})=>`hover:text-primary transition-colors ${isActive?"text-primary":""}`}>Gamification</NavLink>

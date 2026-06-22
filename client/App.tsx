@@ -16,6 +16,8 @@ import Gamification from "./pages/Gamification";
 import AdaptiveTest from "./pages/AdaptiveTest";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
+import Assessment from "./pages/Assessment";
+import Mistakes from "./pages/Mistakes";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/hooks/useAuth";
@@ -35,6 +37,8 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="/assessment" element={<Assessment />} />
+                <Route path="/mistakes" element={<Mistakes />} />
                 <Route path="/class" element={<ClassSelect />} />
                 <Route path="/practice" element={<Practice />} />
                 <Route path="/tutor" element={<Tutor />} />
