@@ -1,6 +1,10 @@
 /**
  * useAssessment — Stateful assessment session controller.
- * Manages question fetching, timing, difficulty adjustment, and completion.
+ *
+ * New architecture:
+ * - All questions are pre-loaded upfront from /api/assessment/start
+ * - The hook manages the question pool and adaptive difficulty selection
+ * - selectNextQuestion() picks from the pool based on current difficulty
  */
 
 import { useState, useRef, useCallback } from "react";
@@ -11,7 +15,10 @@ import {
   Subject,
   Question,
 } from "@shared/coreTypes";
-import { computeNextDifficulty } from "@/lib/assessmentService";
+import {
+  computeNextDifficulty,
+  selectNextQuestion,
+} from "@/lib/assessmentService";
 
 const MAX_QUESTIONS = 15;
 
@@ -21,6 +28,8 @@ export interface UseAssessmentReturn {
   phase: Phase;
   session: AssessmentSession | null;
   currentQuestion: Question | null;
+  questionPool: Question[];
+  usedQuestionIds: Set<string>;
   selectedOptionId: string | null;
   hintUsed: boolean;
   isCorrect: boolean | null;
@@ -28,18 +37,23 @@ export interface UseAssessmentReturn {
   questionStartTime: number;
   // Actions
   startSession: (assessmentId: string, grade: string, subject: Subject) => void;
+  loadPool: (questions: Question[]) => void;
+  loadNextFromPool: () => Question | null;
   setQuestion: (q: Question) => void;
   selectOption: (optionId: string) => void;
   submitAnswer: () => AnswerRecord | null;
   useHint: () => void;
   nextQuestion: () => void;
   setPhase: (p: Phase) => void;
+  resetSession: () => void;
 }
 
 export function useAssessment(): UseAssessmentReturn {
   const [phase, setPhase] = useState<Phase>("setup");
   const [session, setSession] = useState<AssessmentSession | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
+  const [questionPool, setQuestionPool] = useState<Question[]>([]);
+  const [usedQuestionIds, setUsedQuestionIds] = useState<Set<string>>(new Set());
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [hintUsed, setHintUsed] = useState(false);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
@@ -58,10 +72,34 @@ export function useAssessment(): UseAssessmentReturn {
         answers: [],
         startedAt: Date.now(),
       });
+      setUsedQuestionIds(new Set());
       setPhase("loading");
     },
     []
   );
+
+  const loadPool = useCallback((questions: Question[]) => {
+    setQuestionPool(questions);
+  }, []);
+
+  /**
+   * Pick the next question from the pool based on current session difficulty.
+   * Marks the question as used so it won't be shown again.
+   */
+  const loadNextFromPool = useCallback((): Question | null => {
+    if (!session) return null;
+
+    const q = selectNextQuestion(
+      questionPool,
+      usedQuestionIds,
+      session.currentDifficulty
+    );
+
+    if (q) {
+      setUsedQuestionIds((prev) => new Set([...prev, q.id]));
+    }
+    return q;
+  }, [session, questionPool, usedQuestionIds]);
 
   const setQuestion = useCallback((q: Question) => {
     setCurrentQuestion(q);
@@ -122,7 +160,7 @@ export function useAssessment(): UseAssessmentReturn {
     );
 
     setPhase("feedback");
-    return { ...record, correctAnswer: correctOption?.label ?? "" } as any;
+    return record;
   }, [session, currentQuestion, selectedOptionId, hintUsed]);
 
   const nextQuestion = useCallback(() => {
@@ -131,21 +169,38 @@ export function useAssessment(): UseAssessmentReturn {
     setSelectedOptionId(null);
   }, []);
 
+  const resetSession = useCallback(() => {
+    setPhase("setup");
+    setSession(null);
+    setCurrentQuestion(null);
+    setQuestionPool([]);
+    setUsedQuestionIds(new Set());
+    setSelectedOptionId(null);
+    setHintUsed(false);
+    setIsCorrect(null);
+    setResponseTimeMs(0);
+  }, []);
+
   return {
     phase,
     session,
     currentQuestion,
+    questionPool,
+    usedQuestionIds,
     selectedOptionId,
     hintUsed,
     isCorrect,
     responseTimeMs,
     questionStartTime: questionStartRef.current,
     startSession,
+    loadPool,
+    loadNextFromPool,
     setQuestion,
     selectOption,
     submitAnswer,
     useHint,
     nextQuestion,
     setPhase,
+    resetSession,
   };
 }

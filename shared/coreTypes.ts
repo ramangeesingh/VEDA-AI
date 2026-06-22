@@ -197,6 +197,43 @@ export interface AssessmentReport {
   };
 }
 
+// ─── DB-level Assessment Question (stored in assessment_questions table) ──────
+
+export interface AssessmentQuestion {
+  id: string;
+  assessmentId: string;
+  userId: string;
+  questionIndex: number;
+  questionText: string;
+  options: string[];            // ["option A text", "option B text", ...]
+  correctAnswer: string;        // full text of correct option
+  explanation?: string;
+  topic: string;
+  subject: Subject;
+  difficulty: Difficulty;
+  createdAt: string;
+}
+
+// ─── DB-level Assessment Response (stored in assessment_responses table) ──────
+
+export interface AssessmentResponse {
+  id?: string;
+  assessmentId: string;
+  assessmentQuestionId?: string;
+  userId: string;
+  questionIndex: number;
+  questionText: string;
+  topic: string;
+  subject: Subject;
+  difficultyAtTime: Difficulty;
+  userAnswer: string;
+  correctAnswer: string;
+  isCorrect: boolean;
+  responseTimeMs: number;
+  hintUsed: boolean;
+  answeredAt?: string;
+}
+
 // ─── API Payloads ─────────────────────────────────────────────────────────────
 
 export interface GenerateQuestionRequest {
@@ -211,6 +248,39 @@ export interface GenerateQuestionResponse {
   questions: Question[];
   success: boolean;
   error?: string;
+}
+
+// ─── Batch Assessment Start API ───────────────────────────────────────────────
+
+export interface StartAssessmentRequest {
+  userId: string;
+  grade: string;
+  subject: Subject;
+  totalQuestions?: number; // defaults to 15
+}
+
+export interface StartAssessmentResponse {
+  assessmentId?: string;
+  questions?: Question[]; // all pre-generated questions (pool of Easy+Medium+Hard)
+  success: boolean;
+  error?: string;
+}
+
+// ─── Save Response API ────────────────────────────────────────────────────────
+
+export interface SaveResponseRequest {
+  assessmentId: string;
+  userId: string;
+  questionIndex: number;
+  questionText: string;
+  topic: string;
+  subject: Subject;
+  difficultyAtTime: Difficulty;
+  userAnswer: string;
+  correctAnswer: string;
+  isCorrect: boolean;
+  responseTimeMs: number;
+  hintUsed: boolean;
 }
 
 export interface ExplainRequest {

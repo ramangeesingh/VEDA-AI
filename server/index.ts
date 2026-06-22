@@ -3,7 +3,12 @@ import express from "express";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
 import { handleTutorChat, handlePracticeQuestions } from "./routes/gemini";
-import { handleGenerateQuestion, handleExplain } from "./routes/assessment";
+import {
+  handleStartAssessment,
+  handleGenerateQuestion,
+  handleSaveResponse,
+  handleExplain,
+} from "./routes/assessment";
 
 export function createServer() {
   const app = express();
@@ -22,8 +27,12 @@ export function createServer() {
   app.get("/api/demo", handleDemo);
   app.post("/api/tutor", handleTutorChat);
   app.post("/api/practice", handlePracticeQuestions);
-  app.post("/api/assessment/question", handleGenerateQuestion);
-  app.post("/api/explain", handleExplain);
+
+  // ─── Assessment Engine ────────────────────────────────────────────
+  app.post("/api/assessment/start", handleStartAssessment);      // batch generate + create session
+  app.post("/api/assessment/question", handleGenerateQuestion);  // single question (backward compat)
+  app.post("/api/assessment/respond", handleSaveResponse);       // save student response
+  app.post("/api/explain", handleExplain);                       // AI explanation
 
   return app;
 }
