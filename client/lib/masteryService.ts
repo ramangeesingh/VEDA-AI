@@ -1,6 +1,6 @@
 /**
  * Mastery Service
- * Handles student_profiles, mastery_scores, and weak_topics in Supabase.
+ * Handles student_stats, learning_profiles, topic_mastery, and weak_topics in Supabase.
  */
 
 import { supabase } from "@/lib/supabase";
@@ -12,49 +12,99 @@ import {
   Subject,
   Severity,
   AssessmentReport,
+  Assessment,
 } from "@shared/coreTypes";
 import { User } from "@supabase/supabase-js";
 
-// ─── Student Profile ──────────────────────────────────────────────────────────
+// ─── Student Profile (Merged stats + learning dimensions) ──────────────────────
 
 export async function getOrCreateStudentProfile(
   user: User
 ): Promise<StudentProfile | null> {
-  // Try to fetch existing
-  const { data: existing, error: fetchError } = await supabase
-    .from("student_profiles")
-    .select("*")
-    .eq("user_id", user.id)
-    .single();
+  try {
+    // 1. Fetch or create student_stats
+    const { data: existingStats, error: statsError } = await supabase
+      .from("student_stats")
+      .select("*")
+      .eq("user_id", user.id)
+      .single();
 
-  if (existing && !fetchError) return mapProfile(existing);
+    let statsRow = existingStats;
 
-  // Create new profile
-  const displayName =
-    user.user_metadata?.full_name || user.email?.split("@")[0] || "Learner";
-  const avatarUrl = user.user_metadata?.avatar_url;
+    if (statsError || !statsRow) {
+      const displayName =
+        user.user_metadata?.full_name || user.email?.split("@")[0] || "Learner";
+      const avatarUrl = user.user_metadata?.avatar_url;
 
-  const { data: created, error: createError } = await supabase
-    .from("student_profiles")
-    .insert({
-      user_id: user.id,
-      display_name: displayName,
-      avatar_url: avatarUrl,
-      retention: 0,
-      application: 0,
-      grasping: 0,
-      speed: 0,
-      xp: 0,
-      streak: 0,
-    })
-    .select("*")
-    .single();
+      const { data: createdStats, error: statsCreateError } = await supabase
+        .from("student_stats")
+        .insert({
+          user_id: user.id,
+          display_name: displayName,
+          avatar_url: avatarUrl,
+          level: 1,
+          xp: 0,
+          streak: 0,
+        })
+        .select("*")
+        .single();
 
-  if (createError) {
-    console.error("getOrCreateStudentProfile error:", createError);
+      if (statsCreateError) {
+        console.error("Error creating student_stats:", statsCreateError);
+        return null;
+      }
+      statsRow = createdStats;
+    }
+
+    // 2. Fetch or create learning_profiles
+    const { data: existingLp, error: lpError } = await supabase
+      .from("learning_profiles")
+      .select("*")
+      .eq("user_id", user.id)
+      .single();
+
+    let lpRow = existingLp;
+
+    if (lpError || !lpRow) {
+      const { data: createdLp, error: lpCreateError } = await supabase
+        .from("learning_profiles")
+        .insert({
+          user_id: user.id,
+          retention: 0,
+          application: 0,
+          grasping: 0,
+          speed: 0,
+          accuracy: 0,
+        })
+        .select("*")
+        .single();
+
+      if (lpCreateError) {
+        console.error("Error creating learning_profiles:", lpCreateError);
+        return null;
+      }
+      lpRow = createdLp;
+    }
+
+    return {
+      id: statsRow.id,
+      userId: statsRow.user_id,
+      grade: statsRow.grade,
+      displayName: statsRow.display_name,
+      avatarUrl: statsRow.avatar_url,
+      retention: lpRow.retention ?? 0,
+      application: lpRow.application ?? 0,
+      grasping: lpRow.grasping ?? 0,
+      speed: lpRow.speed ?? 0,
+      accuracy: lpRow.accuracy ?? 0,
+      xp: statsRow.xp ?? 0,
+      streak: statsRow.streak ?? 0,
+      lastActive: statsRow.last_active,
+    };
+  } catch (err) {
+    console.error("getOrCreateStudentProfile catch:", err);
     return null;
   }
-  return mapProfile(created);
 }
 
 export async function updateStudentProfile(
@@ -65,33 +115,165 @@ export async function updateStudentProfile(
     application: number;
     grasping: number;
     speed: number;
+    accuracy: number;
     xp: number;
     streak: number;
     lastActive: string;
   }>
 ): Promise<void> {
-  const dbUpdates: Record<string, any> = { updated_at: new Date().toISOString() };
-  if (updates.grade !== undefined) dbUpdates.grade = updates.grade;
-  if (updates.retention !== undefined) dbUpdates.retention = updates.retention;
-  if (updates.application !== undefined) dbUpdates.application = updates.application;
-  if (updates.grasping !== undefined) dbUpdates.grasping = updates.grasping;
-  if (updates.speed !== undefined) dbUpdates.speed = updates.speed;
-  if (updates.xp !== undefined) dbUpdates.xp = updates.xp;
-  if (updates.streak !== undefined) dbUpdates.streak = updates.streak;
-  if (updates.lastActive !== undefined) dbUpdates.last_active = updates.lastActive;
+  const statsUpdates: Record<string, any> = { updated_at: new Date().toISOString() };
+  const lpUpdates: Record<string, any> = { updated_at: new Date().toISOString() };
 
-  const { error } = await supabase
-    .from("student_profiles")
-    .update(dbUpdates)
-    .eq("user_id", userId);
-  if (error) console.error("updateStudentProfile error:", error);
+  let hasStats = false;
+  let hasLp = false;
+
+  if (updates.grade !== undefined) { statsUpdates.grade = updates.grade; hasStats = true; }
+  if (updates.xp !== undefined) { statsUpdates.xp = updates.xp; hasStats = true; }
+  if (updates.streak !== undefined) { statsUpdates.streak = updates.streak; hasStats = true; }
+  if (updates.lastActive !== undefined) { statsUpdates.last_active = updates.lastActive; hasStats = true; }
+
+  if (updates.retention !== undefined) { lpUpdates.retention = updates.retention; hasLp = true; }
+  if (updates.application !== undefined) { lpUpdates.application = updates.application; hasLp = true; }
+  if (updates.grasping !== undefined) { lpUpdates.grasping = updates.grasping; hasLp = true; }
+  if (updates.speed !== undefined) { lpUpdates.speed = updates.speed; hasLp = true; }
+  if (updates.accuracy !== undefined) { lpUpdates.accuracy = updates.accuracy; hasLp = true; }
+
+  const promises = [];
+  if (hasStats) {
+    promises.push(
+      supabase.from("student_stats").update(statsUpdates).eq("user_id", userId)
+    );
+  }
+  if (hasLp) {
+    promises.push(
+      supabase.from("learning_profiles").update(lpUpdates).eq("user_id", userId)
+    );
+  }
+
+  await Promise.all(promises);
+}
+
+// ─── Recalculate Profile Dimensions From Database Logs ────────────────────────
+
+export async function recalculateLearningProfile(userId: string): Promise<void> {
+  try {
+    // 1. Fetch all completed assessments
+    const { data: assessments } = await supabase
+      .from("assessments")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("status", "completed");
+
+    // 2. Fetch all responses
+    const { data: responses } = await supabase
+      .from("assessment_responses")
+      .select("*")
+      .eq("user_id", userId);
+
+    if (!assessments || !responses || responses.length === 0) return;
+
+    const totalAssessments = assessments.length;
+    const totalQuestions = responses.length;
+    const totalCorrect = responses.filter((r) => r.is_correct).length;
+
+    // Accuracy: total correct / total questions
+    const accuracy = Math.round((totalCorrect / totalQuestions) * 100);
+
+    // Speed: map average response time to score (5s = 100, 25s = 0)
+    const avgResponseTime =
+      responses.reduce((sum, r) => sum + r.response_time_ms, 0) / totalQuestions;
+    const speed = Math.max(
+      0,
+      Math.min(100, Math.round(((25000 - avgResponseTime) / 20000) * 100))
+    );
+
+    // Application: % correct on Hard questions (default 50 if none)
+    const hardQs = responses.filter((r) => r.difficulty_at_time === "Hard");
+    const application =
+      hardQs.length > 0
+        ? Math.round((hardQs.filter((r) => r.is_correct).length / hardQs.length) * 100)
+        : 50;
+
+    // Grasping: speed-weighted correctness
+    const grasping = Math.min(
+      100,
+      Math.round(
+        (responses.reduce((sum, r) => {
+          const speedFactor = Math.max(0.1, Math.min(1, 10000 / r.response_time_ms));
+          return sum + (r.is_correct ? speedFactor : 0);
+        }, 0) /
+          totalQuestions) *
+          100
+      )
+    );
+
+    // Retention: correct % on topics already attempted previously (historical responses)
+    let retentionCorrect = 0;
+    let retentionTotal = 0;
+    const topicAttemptCounts = new Map<string, number>();
+
+    // Sort responses chronologically to simulate progression
+    const sortedResponses = [...responses].sort(
+      (a, b) =>
+        new Date(a.answered_at || 0).getTime() - new Date(b.answered_at || 0).getTime()
+    );
+
+    for (const r of sortedResponses) {
+      const count = topicAttemptCounts.get(r.topic) ?? 0;
+      if (count > 0) {
+        retentionTotal++;
+        if (r.is_correct) retentionCorrect++;
+      }
+      topicAttemptCounts.set(r.topic, count + 1);
+    }
+
+    const retention =
+      retentionTotal > 0
+        ? Math.round((retentionCorrect / retentionTotal) * 100)
+        : accuracy; // Fallback to overall accuracy
+
+    // Update learning_profiles
+    await supabase.from("learning_profiles").upsert(
+      {
+        user_id: userId,
+        retention,
+        application,
+        grasping,
+        speed,
+        accuracy,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" }
+    );
+
+    // Update student_stats with aggregate counts and level calculation
+    const totalXp = assessments.reduce(
+      (sum, a) =>
+        sum + (a.overall_score >= 80 ? 150 : a.overall_score >= 60 ? 100 : 50),
+      0
+    );
+    const calculatedLevel = Math.max(1, Math.floor(totalXp / 150) + 1);
+
+    await supabase
+      .from("student_stats")
+      .update({
+        total_assessments: totalAssessments,
+        total_questions_answered: totalQuestions,
+        total_correct: totalCorrect,
+        level: calculatedLevel,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId);
+  } catch (err) {
+    console.error("recalculateLearningProfile error:", err);
+  }
 }
 
 // ─── Mastery Scores ───────────────────────────────────────────────────────────
 
 export async function getMasteryScores(userId: string): Promise<MasteryScore[]> {
   const { data, error } = await supabase
-    .from("mastery_scores")
+    .from("topic_mastery")
     .select("*")
     .eq("user_id", userId)
     .order("mastery_pct", { ascending: true });
@@ -111,7 +293,7 @@ export async function upsertMastery(
 ): Promise<void> {
   // Fetch existing to do EMA blend
   const { data: existing } = await supabase
-    .from("mastery_scores")
+    .from("topic_mastery")
     .select("mastery_pct, attempts")
     .eq("user_id", userId)
     .eq("subject", subject)
@@ -120,10 +302,10 @@ export async function upsertMastery(
 
   const prevPct = existing?.mastery_pct ?? 0;
   const attempts = (existing?.attempts ?? 0) + 1;
-  // EMA α=0.4 — newer sessions matter more
+  // EMA α=0.4
   const blended = Math.round(0.4 * newPct + 0.6 * prevPct);
 
-  const { error } = await supabase.from("mastery_scores").upsert(
+  const { error } = await supabase.from("topic_mastery").upsert(
     {
       user_id: userId,
       subject,
@@ -210,7 +392,7 @@ export async function getLearningProfile(
     .eq("user_id", userId)
     .eq("status", "completed")
     .order("completed_at", { ascending: false })
-    .limit(5);
+    .limit(10); // get up to 10 for charts
 
   return {
     profile,
@@ -229,6 +411,8 @@ export async function getLearningProfile(
       completedAt: a.completed_at,
       finalDifficulty: a.final_difficulty,
       difficultyProgression: a.difficulty_progression ?? [],
+      timeTakenMs: a.time_taken_ms ?? 0,
+      avgResponseTimeMs: a.avg_response_time_ms ?? 0,
     })),
   };
 }
@@ -254,7 +438,8 @@ export async function applyReportToMastery(
   const weakFlags = report.topicBreakdown
     .filter((t) => t.percentage < 50)
     .map((t) => {
-      const severity: Severity = t.percentage < 30 ? "critical" : t.percentage < 40 ? "moderate" : "mild";
+      const severity: Severity =
+        t.percentage < 30 ? "critical" : t.percentage < 40 ? "moderate" : "mild";
       return flagWeakTopic(userId, t.subject, t.topic, severity);
     });
 
@@ -264,26 +449,12 @@ export async function applyReportToMastery(
     .map((t) => resolveWeakTopic(userId, t.subject, t.topic));
 
   await Promise.all([...weakFlags, ...resolves]);
+
+  // Trigger profile recalculation
+  await recalculateLearningProfile(userId);
 }
 
 // ─── Mappers ──────────────────────────────────────────────────────────────────
-
-function mapProfile(row: any): StudentProfile {
-  return {
-    id: row.id,
-    userId: row.user_id,
-    grade: row.grade,
-    displayName: row.display_name,
-    avatarUrl: row.avatar_url,
-    retention: row.retention ?? 0,
-    application: row.application ?? 0,
-    grasping: row.grasping ?? 0,
-    speed: row.speed ?? 0,
-    xp: row.xp ?? 0,
-    streak: row.streak ?? 0,
-    lastActive: row.last_active,
-  };
-}
 
 function mapMastery(row: any): MasteryScore {
   return {

@@ -7,6 +7,7 @@ interface AssessmentHeaderProps {
   difficulty: Difficulty;
   subject: Subject;
   correctSoFar: number;
+  timeElapsed?: string;
 }
 
 const DIFFICULTY_CONFIG = {
@@ -21,6 +22,7 @@ export default function AssessmentHeader({
   difficulty,
   subject,
   correctSoFar,
+  timeElapsed,
 }: AssessmentHeaderProps) {
   const pct = Math.round((questionIndex / totalQuestions) * 100);
   const cfg = DIFFICULTY_CONFIG[difficulty];
@@ -44,6 +46,11 @@ export default function AssessmentHeader({
 
         {/* Stats */}
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          {timeElapsed && (
+            <span className="flex items-center gap-1 font-mono text-veda-coral font-bold bg-veda-coral/10 border border-veda-coral/25 px-2 py-0.5 rounded">
+              ⏱️ Time: {timeElapsed}
+            </span>
+          )}
           <span className="flex items-center gap-1">
             <BookOpen size={12} />
             {questionIndex + 1} / {totalQuestions}

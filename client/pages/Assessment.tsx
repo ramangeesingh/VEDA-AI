@@ -77,6 +77,26 @@ export default function Assessment() {
   const [isSaving, setIsSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatingMessage, setGeneratingMessage] = useState("Generating your questions…");
+  
+  // Timer states
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  useEffect(() => {
+    if (phase !== "question" && phase !== "feedback") {
+      setElapsedSeconds(0);
+      return;
+    }
+    const timer = setInterval(() => {
+      setElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [phase]);
+
+  function formatTime(secs: number) {
+    const m = Math.floor(secs / 60).toString().padStart(2, "0");
+    const s = (secs % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  }
 
   // Load student profile
   useEffect(() => {
@@ -164,6 +184,7 @@ export default function Assessment() {
     // Save response to Supabase via server
     await saveAssessmentResponse({
       assessmentId,
+      assessmentQuestionId: (currentQuestion as any).dbId || currentQuestion.id,
       userId: user.id,
       questionIndex: session.questionIndex,
       questionText: currentQuestion.text,
@@ -189,6 +210,7 @@ export default function Assessment() {
       : { retention: 0, application: 0, grasping: 0, speed: 0 };
 
     const builtReport = buildReport(assessmentId, session, prevProfile);
+    builtReport.timeTakenMs = elapsedSeconds * 1000; // Store exact total assessment duration
     setReport(builtReport);
 
     const newXp = (profile?.xp ?? 0) + builtReport.xpEarned;
@@ -328,6 +350,34 @@ export default function Assessment() {
               </div>
             </div>
 
+            {selectedSubject && (
+              <div className="rounded-2xl border bg-card p-6 shadow-soft space-y-4 animate-in fade-in-50 duration-300">
+                <h3 className="font-bold text-sm flex items-center gap-2 text-veda-sky">
+                  <span>📋</span> Assessment Summary Details
+                </h3>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="rounded-xl bg-muted/40 p-3 border">
+                    <p className="text-muted-foreground">Subject</p>
+                    <p className="font-bold text-sm mt-0.5 flex items-center gap-1">
+                      {SUBJECTS.find(s => s.value === selectedSubject)?.emoji} {SUBJECTS.find(s => s.value === selectedSubject)?.label}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-muted/40 p-3 border">
+                    <p className="text-muted-foreground">Questions</p>
+                    <p className="font-bold text-sm mt-0.5">15 Questions</p>
+                  </div>
+                  <div className="rounded-xl bg-muted/40 p-3 border">
+                    <p className="text-muted-foreground">Initial Difficulty</p>
+                    <p className="font-bold text-sm mt-0.5 text-veda-mint">Adaptive (starts Easy)</p>
+                  </div>
+                  <div className="rounded-xl bg-muted/40 p-3 border">
+                    <p className="text-muted-foreground">Estimated Time</p>
+                    <p className="font-bold text-sm mt-0.5 text-veda-coral">⏱️ ~10 Minutes</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {profile?.grade && (
               <p className="text-xs text-muted-foreground text-center">
                 Class <span className="font-bold">{profile.grade}</span> questions will be generated for you
@@ -340,7 +390,7 @@ export default function Assessment() {
               className="w-full rounded-2xl bg-gradient-to-r from-veda-sky to-veda-lavender text-white py-4 font-bold shadow-soft hover:shadow-soft-lg hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               <Brain size={18} />
-              Start Adaptive Assessment 🚀
+              Start Assessment 🚀
             </button>
           </div>
         )}
@@ -362,6 +412,7 @@ export default function Assessment() {
               difficulty={session.currentDifficulty}
               subject={session.subject}
               correctSoFar={correctSoFar}
+              timeElapsed={formatTime(elapsedSeconds)}
             />
             <QuestionCard
               question={currentQuestion}
@@ -390,6 +441,7 @@ export default function Assessment() {
               difficulty={session.currentDifficulty}
               subject={session.subject}
               correctSoFar={correctSoFar}
+              timeElapsed={formatTime(elapsedSeconds)}
             />
             {currentQuestion && (
               <QuestionCard

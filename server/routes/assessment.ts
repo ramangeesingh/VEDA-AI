@@ -22,44 +22,11 @@ import {
   QuestionOption,
 } from "@shared/coreTypes";
 
-// ─── Gemini JSON caller ───────────────────────────────────────────────────────
+// ─── Multi-Provider AI (FallbackManager) ─────────────────────────────────────
+// Priority: Question Cache → Gemini → Groq → Seed Questions
 
-async function callGeminiJSON<T>(prompt: string, schema: object): Promise<T> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-
-  const body = {
-    contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: {
-      responseMimeType: "application/json",
-      responseSchema: schema,
-      temperature: 0.7,
-      maxOutputTokens: 8000,
-    },
-  };
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    }
-  );
-
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(`Gemini API ${response.status}: ${JSON.stringify(err)}`);
-  }
-
-  const data = await response.json();
-  const text =
-    data.candidates?.[0]?.content?.parts?.[0]?.text ||
-    data.candidates?.[0]?.text ||
-    "{}";
-
-  return JSON.parse(text) as T;
-}
+import { FallbackManager } from "../services/questionGenerator/FallbackManager";
+import { VedaMCQ, QuestionRequest } from "../services/questionGenerator/types";
 
 // Plain text Gemini call (for explanations)
 async function callGeminiText(prompt: string, maxTokens = 500): Promise<string> {
@@ -91,52 +58,12 @@ async function callGeminiText(prompt: string, maxTokens = 500): Promise<string> 
   );
 }
 
-// ─── JSON Schema for Gemini ───────────────────────────────────────────────────
 
-const QUESTION_JSON_SCHEMA = {
-  type: "object",
-  properties: {
-    questions: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          question: { type: "string" },
-          options: {
-            type: "array",
-            items: { type: "string" },
-            minItems: 4,
-            maxItems: 4,
-          },
-          correctAnswer: { type: "string" },
-          explanation: { type: "string" },
-          topic: { type: "string" },
-          difficulty: { type: "string", enum: ["Easy", "Medium", "Hard"] },
-        },
-        required: ["question", "options", "correctAnswer", "explanation", "topic", "difficulty"],
-      },
-    },
-  },
-  required: ["questions"],
-};
-
-interface GeminiQuestion {
-  question: string;
-  options: string[];
-  correctAnswer: string;
-  explanation: string;
-  topic: string;
-  difficulty: string;
-}
-
-interface GeminiQuestionBatch {
-  questions: GeminiQuestion[];
-}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function mapToQuestion(
-  gq: GeminiQuestion,
+  gq: VedaMCQ,
   idx: number,
   grade: string,
   subject: Subject
@@ -170,47 +97,28 @@ function mapToQuestion(
   };
 }
 
-const DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  Easy: "simple, foundational — suitable for beginners",
-  Medium: "intermediate — requires reasoning and concept understanding",
-  Hard: "challenging — multi-step thinking, application of knowledge",
-};
+// ─── Generate questions via multi-provider FallbackManager ───────────────────
 
-// ─── Generate questions for a single difficulty ────────────────────────────────
-
+/**
+ * Adapter: wraps FallbackManager so route handlers retain the same call signature.
+ * Fallback order: Question Cache → Gemini 2.5 Flash → Groq Llama 3.3 70B → Seed Questions
+ */
 async function generateForDifficulty(
   grade: string,
   subject: Subject,
   difficulty: Difficulty,
   count: number,
   avoidTopics: string[] = []
-): Promise<GeminiQuestion[]> {
-  const avoid =
-    avoidTopics.length > 0
-      ? `\nAvoid topics already covered: ${avoidTopics.join(", ")}.`
-      : "";
-
-  const subjectHint =
-    subject === "Mixed"
-      ? "covering a mix of Mathematics, Science, and English Language"
-      : `about ${subject}`;
-
-  const prompt = `You are an expert educational content creator for Indian school students.
-
-Generate exactly ${count} multiple-choice questions ${subjectHint} for Class ${grade} students.
-Difficulty: ${difficulty} (${DIFFICULTY_LABELS[difficulty]}).${avoid}
-
-Requirements:
-- Each question must have exactly 4 answer options
-- The correctAnswer field must EXACTLY match one of the 4 options (copy-paste the same string)
-- Provide a clear, encouraging explanation (2-3 sentences) for why the answer is correct
-- Topic should be a specific concept name (e.g., "Photosynthesis", "Fractions", "Tenses")
-- Questions must be educational, age-appropriate, and engaging
-
-Return exactly ${count} questions.`;
-
-  const result = await callGeminiJSON<GeminiQuestionBatch>(prompt, QUESTION_JSON_SCHEMA);
-  return result.questions?.slice(0, count) || [];
+): Promise<VedaMCQ[]> {
+  const req: QuestionRequest = {
+    subject,
+    topic: "General",
+    difficulty,
+    classLevel: grade,
+    count,
+    avoidQuestions: avoidTopics,
+  };
+  return FallbackManager.generateQuestions(req);
 }
 
 // ─── Supabase client (server-side) ────────────────────────────────────────────
@@ -268,7 +176,7 @@ export const handleStartAssessment: RequestHandler = async (req, res) => {
     if (allQuestions.length === 0) {
       return res.status(422).json({
         success: false,
-        error: "Gemini returned no questions. Please try again.",
+        error: "Could not generate questions. Please try again.",
         assessmentId: "",
         questions: [],
       } satisfies StartAssessmentResponse);
@@ -358,6 +266,7 @@ export const handleSaveResponse: RequestHandler = async (req, res) => {
 
     const { error } = await supabase.from("assessment_responses").insert({
       assessment_id: body.assessmentId,
+      assessment_question_id: body.assessmentQuestionId,
       user_id: body.userId,
       question_index: body.questionIndex,
       question_text: body.questionText,

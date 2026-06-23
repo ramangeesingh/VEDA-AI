@@ -168,6 +168,8 @@ export async function completeAssessment(
       total_questions: report.totalQuestions,
       correct_answers: report.correctAnswers,
       overall_score: report.overallScore,
+      time_taken_ms: report.timeTakenMs,
+      avg_response_time_ms: report.totalQuestions > 0 ? Math.round(report.timeTakenMs / report.totalQuestions) : 0,
       completed_at: new Date().toISOString(),
       final_difficulty: report.finalDifficulty,
       difficulty_progression: report.difficultyProgression,
@@ -209,6 +211,8 @@ function mapAssessment(row: any): Assessment {
     completedAt: row.completed_at,
     finalDifficulty: row.final_difficulty,
     difficultyProgression: row.difficulty_progression ?? [],
+    timeTakenMs: row.time_taken_ms ?? 0,
+    avgResponseTimeMs: row.avg_response_time_ms ?? 0,
   };
 }
 

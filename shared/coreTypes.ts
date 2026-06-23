@@ -42,6 +42,8 @@ export interface Assessment {
   completedAt?: string;
   finalDifficulty?: Difficulty;
   difficultyProgression: string[];
+  timeTakenMs?: number;
+  avgResponseTimeMs?: number;
 }
 
 export interface Response {
@@ -91,6 +93,7 @@ export interface StudentProfile {
   application: number; // % correct on Hard questions
   grasping: number;    // speed-weighted correctness
   speed: number;       // avg response time score
+  accuracy: number;    // overall correct percentage
   xp: number;
   streak: number;
   lastActive?: string;
@@ -270,6 +273,7 @@ export interface StartAssessmentResponse {
 
 export interface SaveResponseRequest {
   assessmentId: string;
+  assessmentQuestionId?: string;
   userId: string;
   questionIndex: number;
   questionText: string;

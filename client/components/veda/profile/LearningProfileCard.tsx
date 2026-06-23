@@ -7,7 +7,7 @@ import {
   PolarRadiusAxis,
   ResponsiveContainer,
 } from "recharts";
-import { Brain, Zap, BookOpen, TrendingUp } from "lucide-react";
+import { Brain, Zap, BookOpen, TrendingUp, Target } from "lucide-react";
 
 interface LearningProfileCardProps {
   profile: StudentProfile;
@@ -19,6 +19,7 @@ const DIMENSION_META = [
   { key: "application",  label: "Application",  icon: Zap,        color: "text-veda-coral",    bg: "bg-veda-coral/10 border-veda-coral/25" },
   { key: "grasping",     label: "Grasping",     icon: BookOpen,   color: "text-veda-mint",     bg: "bg-veda-mint/10 border-veda-mint/25" },
   { key: "speed",        label: "Speed",        icon: TrendingUp, color: "text-veda-lavender", bg: "bg-veda-lavender/10 border-veda-lavender/25" },
+  { key: "accuracy",     label: "Accuracy",     icon: Target,     color: "text-veda-yellow",   bg: "bg-veda-yellow/10 border-veda-yellow/25" },
 ] as const;
 
 function scoreLabel(pct: number): { label: string; cls: string } {
@@ -31,7 +32,7 @@ function scoreLabel(pct: number): { label: string; cls: string } {
 export default function LearningProfileCard({ profile, compact = false }: LearningProfileCardProps) {
   const radarData = DIMENSION_META.map((d) => ({
     metric: d.label,
-    value:  profile[d.key as keyof StudentProfile] as number,
+    value:  (profile[d.key as keyof StudentProfile] ?? 0) as number,
   }));
 
   return (
@@ -51,12 +52,13 @@ export default function LearningProfileCard({ profile, compact = false }: Learni
 
       {/* Stat chips */}
       <div className="grid grid-cols-2 gap-2.5">
-        {DIMENSION_META.map((d) => {
-          const val = profile[d.key as keyof StudentProfile] as number;
+        {DIMENSION_META.map((d, index) => {
+          const val = (profile[d.key as keyof StudentProfile] ?? 0) as number;
           const { label, cls } = scoreLabel(val);
           const Icon = d.icon;
+          const isFullWidth = index === DIMENSION_META.length - 1 && DIMENSION_META.length % 2 !== 0;
           return (
-            <div key={d.key} className={`rounded-2xl border p-3 ${d.bg} flex flex-col gap-1`}>
+            <div key={d.key} className={`rounded-2xl border p-3 ${d.bg} flex flex-col gap-1 ${isFullWidth ? "col-span-2" : ""}`}>
               <div className="flex items-center gap-1.5">
                 <Icon size={12} className={d.color} />
                 <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
@@ -85,7 +87,7 @@ export default function LearningProfileCard({ profile, compact = false }: Learni
           <ResponsiveContainer>
             <RadarChart data={radarData} outerRadius={65}>
               <PolarGrid stroke="hsl(var(--border))" />
-              <PolarAngleAxis dataKey="metric" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+              <PolarAngleAxis dataKey="metric" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
               <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} />
               <Radar dataKey="value" stroke="#B57EDC" fill="#B57EDC" fillOpacity={0.3} />
             </RadarChart>
